@@ -1,0 +1,27 @@
+{
+  "name": "خط الجولة - تتبع مواقع السائقين والركاب",
+  "short_name": "خط الجولة",
+  "description": "تطبيق لمساعدة السائقين على تحديد مواقع الركاب ومساعدة الركاب على تحديد مواقع السائقين على الخريطة، منظم حسب خطوط النقل",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0ea5e9",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

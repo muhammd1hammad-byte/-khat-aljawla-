@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>خط الجولة — مواقع السائقين والركاب</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0ea5e9">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="خط الجولة">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;700&display=swap');
+
+  :root{
+    --bg:#0f172a;
+    --bg-soft:#16213c;
+    --panel:#1b2a4a;
+    --panel-light:#22345a;
+    --line:#2c3e63;
+    --ink:#e8edf7;
+    --ink-dim:#a7b3cc;
+    --accent:#0ea5e9;
+    --accent-dark:#0b84bd;
+    --driver:#22c55e;
+    --rider:#f59e0b;
+    --danger:#ef4444;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Noto Naskh Arabic', 'Noto Kufi Arabic', sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  h1,h2,h3,.kufi{ font-family:'Noto Kufi Arabic', sans-serif; }
+  button{ font-family:inherit; }
+  input, select{ font-family:inherit; }
+
+  #app{ max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ===== الشريط العلوي ===== */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; background:var(--bg-soft);
+    border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:50;
+  }
+  .topbar .brand{ display:flex; align-items:center; gap:10px; }
+  .topbar .brand .logo{
+    width:34px; height:34px; border-radius:9px;
+    background:linear-gradient(135deg, var(--accent), var(--accent-dark));
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .topbar h1{ font-size:16px; margin:0; color:var(--ink); }
+  .topbar .sub{ font-size:11px; color:var(--ink-dim); margin-top:2px; }
+  .role-pill{
+    font-size:11px; padding:5px 10px; border-radius:999px;
+    background:var(--panel-light); border:1px solid var(--line);
+    color:var(--ink-dim); display:flex; align-items:center; gap:6px;
+    cursor:pointer; white-space:nowrap;
+  }
+  .role-pill.driver{ color:var(--driver); border-color:rgba(34,197,94,0.4); }
+  .role-pill.rider{ color:var(--rider); border-color:rgba(245,158,11,0.4); }
+  .role-pill .dot{ width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+  main{ flex:1; padding:16px; padding-bottom:32px; }
+
+  .card{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:18px;
+    margin-bottom:14px;
+  }
+  .card h2{ font-size:16px; margin:0 0 6px; color:var(--ink); }
+  .card p.hint{ font-size:12.5px; color:var(--ink-dim); margin:0 0 14px; line-height:1.7; }
+
+  /* ===== إعداد أولي: اختيار الدور والخط ===== */
+  .choice-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .choice-btn{
+    background:var(--panel-light); border:1.5px solid var(--line);
+    border-radius:12px; padding:16px 10px; text-align:center;
+    color:var(--ink); cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .choice-btn .icon{ font-size:26px; margin-bottom:6px; display:block; }
+  .choice-btn .label{ font-size:14px; font-weight:600; }
+  .choice-btn.selected.driver{ border-color:var(--driver); background:rgba(34,197,94,0.12); }
+  .choice-btn.selected.rider{ border-color:var(--rider); background:rgba(245,158,11,0.12); }
+
+  .field-label{ font-size:12.5px; color:var(--ink-dim); margin:14px 0 6px; }
+  select.line-select, input.text-input{
+    width:100%; padding:12px 14px; border-radius:10px;
+    background:var(--bg-soft); border:1.5px solid var(--line);
+    color:var(--ink); font-size:14.5px;
+  }
+  select.line-select:focus, input.text-input:focus{ outline:none; border-color:var(--accent); }
+
+  .btn-primary{
+    width:100%; padding:14px; border:none; border-radius:12px;
+    background:var(--accent); color:#fff; font-size:15px; font-weight:700;
+    cursor:pointer; margin-top:16px;
+  }
+  .btn-primary:disabled{ opacity:0.5; cursor:not-allowed; }
+  .btn-secondary{
+    width:100%; padding:12px; border-radius:12px;
+    background:transparent; border:1.5px solid var(--line); color:var(--ink);
+    font-size:13.5px; cursor:pointer; margin-top:8px;
+  }
+  .btn-danger-outline{
+    border-color:rgba(239,68,68,0.5); color:var(--danger);
+  }
+
+  /* ===== بوابة GPS ===== */
+  .gpsgate-overlay{
+    position:fixed; inset:0; z-index:9999; background:var(--bg);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .gpsgate-overlay.hidden{ display:none; }
+  .gpsgate-box{
+    max-width:400px; width:100%; background:var(--panel);
+    border:1px solid var(--line); border-radius:16px; padding:30px 22px; text-align:center;
+  }
+  .gpsgate-icon{ font-size:42px; margin-bottom:10px; }
+  .gpsgate-box h2{ font-size:17px; margin:0 0 10px; }
+  .gpsgate-box p{ font-size:13px; color:var(--ink-dim); line-height:1.8; margin:0 0 18px; }
+  .gpsgate-status{ font-size:12.5px; color:var(--accent); min-height:18px; margin-bottom:14px; }
+  .gpsgate-status.err{ color:var(--danger); }
+  .gpsgate-box .btn-secondary{ margin-top:8px; }
+
+  .live-badge.off{ color:var(--rider); }
+  .enable-loc-link{
+    color:var(--accent); text-decoration:underline; cursor:pointer; white-space:nowrap;
+  }
+
+  /* ===== حالة البث النشط ===== */
+  .live-badge{
+    display:flex; align-items:center; gap:8px; font-size:12.5px;
+    color:var(--ink-dim); margin-bottom:12px;
+  }
+  .live-dot{
+    width:8px; height:8px; border-radius:50%; background:var(--driver);
+    box-shadow:0 0 0 0 rgba(34,197,94,0.6); animation:pulse 1.6s infinite;
+    flex-shrink:0;
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(34,197,94,0.55); }
+    70%{ box-shadow:0 0 0 8px rgba(34,197,94,0); }
+    100%{ box-shadow:0 0 0 0 rgba(34,197,94,0); }
+  }
+
+  .line-header{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
+  }
+  .line-header .name{ font-size:15px; font-weight:700; }
+  .line-header .count{
+    font-size:11.5px; padding:4px 10px; border-radius:999px;
+    background:var(--panel-light); color:var(--ink-dim);
+  }
+
+  /* ===== الخريطة ===== */
+  .map-wrap{ position:relative; }
+  .map-box{
+    width:100%; height:340px; border-radius:12px; overflow:hidden;
+    background:var(--bg-soft); border:1px solid var(--line);
+  }
+  .map-style-switch{
+    position:absolute; top:8px; left:8px; z-index:400;
+    display:flex; gap:4px; background:rgba(15,23,42,0.85);
+    padding:4px; border-radius:8px;
+  }
+  .map-style-btn{
+    font-size:10.5px; padding:5px 8px; border-radius:6px; border:none;
+    background:transparent; color:var(--ink-dim); cursor:pointer;
+  }
+  .map-style-btn.active{ background:var(--accent); color:#fff; }
+
+  .empty-note{ font-size:12.5px; color:var(--ink-dim); text-align:center; padding:14px; }
+
+  /* تسميات النقاط على خريطة Leaflet */
+  .khat-map-label{
+    background:rgba(15,23,42,0.9); color:#fff; border:none !important;
+    box-shadow:none !important; font-size:11px; padding:2px 8px;
+    border-radius:6px; font-family:'Noto Kufi Arabic', sans-serif;
+  }
+  .khat-map-label::before{ display:none; }
+
+  /* قائمة نصية أسفل الخريطة */
+  .person-list{ margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .person-item{
+    background:var(--bg-soft); border:1px solid var(--line);
+    border-radius:10px; padding:10px 12px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .person-item .info{ display:flex; align-items:center; gap:9px; min-width:0; }
+  .person-item .avatar{
+    width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:14px;
+  }
+  .person-item.driver .avatar{ background:rgba(34,197,94,0.18); color:var(--driver); }
+  .person-item.rider .avatar{ background:rgba(245,158,11,0.18); color:var(--rider); }
+  .person-item .name{ font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .person-item .ago{ font-size:11px; color:var(--ink-dim); flex-shrink:0; }
+  .person-item .go-link{
+    font-size:11.5px; color:var(--accent); text-decoration:none; flex-shrink:0;
+    padding:6px 10px; border:1px solid var(--accent); border-radius:8px;
+  }
+
+  .legend{ display:flex; gap:16px; font-size:12px; color:var(--ink-dim); margin:10px 0 4px; }
+  .legend span{ display:flex; align-items:center; gap:6px; }
+  .legend i{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .legend .li-driver{ background:var(--driver); }
+  .legend .li-rider{ background:var(--rider); }
+  .legend .li-me{ background:var(--accent); }
+
+  .switch-line-link{
+    display:block; text-align:center; font-size:12.5px; color:var(--ink-dim);
+    margin-top:6px; cursor:pointer; text-decoration:underline;
+  }
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--panel-light); color:var(--ink); border:1px solid var(--line);
+    padding:10px 18px; border-radius:10px; font-size:13px; z-index:2000;
+    box-shadow:0 8px 24px rgba(0,0,0,0.3);
+    opacity:0; pointer-events:none; transition:opacity .25s;
+  }
+  .toast.show{ opacity:1; }
+
+  a{ color:var(--accent); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 17l3-9a2 2 0 0 1 2-1.4h8a2 2 0 0 1 2 1.4l3 9"/>
+          <path d="M3 17h18v2a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H6v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2z"/>
+          <circle cx="7.5" cy="17" r="1.6" fill="#fff" stroke="none"/>
+          <circle cx="16.5" cy="17" r="1.6" fill="#fff" stroke="none"/>
+        </svg>
+      </div>
+      <div>
+        <h1>خط الجولة</h1>
+        <div class="sub">مواقع السائقين والركاب لحظياً</div>
+      </div>
+    </div>
+    <div class="role-pill" id="topRolePill" style="display:none;"></div>
+  </div>
+
+  <main id="mainHost"></main>
+
+</div>
+
+<div class="gpsgate-overlay hidden" id="gpsGateOverlay">
+  <div class="gpsgate-box">
+    <div class="gpsgate-icon">📍</div>
+    <h2>مشاركة الموقع (GPS)</h2>
+    <p>يمكنك تفعيل مشاركة موقعك ليظهر لبقية المستخدمين على نفس الخط، ولرؤية مواقعهم لحظياً على الخريطة. أو يمكنك المتابعة دون تفعيله، وستظل ترى مواقع الآخرين فقط دون أن يظهر موقعك لهم.</p>
+    <div class="gpsgate-status" id="gpsGateStatus"></div>
+    <button class="btn-primary" id="gpsGateEnableBtn">تفعيل الموقع</button>
+    <button class="btn-secondary" id="gpsGateSkipBtn">المتابعة بدون تفعيل الموقع</button>
+    <button class="btn-primary" id="gpsGateRetryBtn" style="display:none;">إعادة المحاولة</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================================
+   خط الجولة — تطبيق مشاركة مواقع لحظية بين السائقين والركاب حسب خط النقل
+   ============================================================================
+   الفكرة: كل مستخدم يختار دوره (سائق / راكب) والخط الذي ينتمي إليه، ثم يبدأ
+   التطبيق ببث موقعه (إن كان قد وافق) واستقبال مواقع بقية المستخدمين على نفس
+   الخط من الفئة المقابلة (السائق يرى الركاب، والراكب يرى السائقين).
+   يُستخدم Firebase Realtime Database عبر REST بسيط (PUT/GET) دون أي SDK،
+   بنفس أسلوب مشاركة المواقع اللحظية في تطبيق "الضبوط التموينية".
+   ========================================================================= */
+
+/* ---------- إعداد قاعدة البيانات اللحظية ---------- */
+/* ملاحظة مهمة: يجب استبدال هذا الرابط بقاعدة بيانات Firebase Realtime Database
+   خاصة بك (مجانية) قبل النشر الفعلي — أنشئ مشروعاً على console.firebase.google.com
+   وفعّل Realtime Database بقواعد قراءة/كتابة عامة (أو محمية حسب الحاجة)، ثم ضع
+   رابط القاعدة هنا. الرابط أدناه هو مجرد نموذج توضيحي وقد لا يعمل فعلياً. */
+const LIVE_DB_URL = 'https://khat-aljawla-default-rtdb.asia-southeast1.firebasedatabase.app';
+/* هذا هو رابط قاعدة بيانات مشروع Firebase الفعلي الخاص بالمستخدم (khat-aljawla) */
+// تم ضبط هذا الرابط فعلياً على مشروع Firebase الخاص بالمستخدم (khat-aljawla).
+const LOCATION_STALE_MS = 5 * 60 * 1000;      // نتجاهل أي موقع لم يُحدَّث منذ أكثر من ٥ دقائق
+const PUSH_MIN_INTERVAL_MS = 8000;             // لا نرسل تحديثاً أسرع من كل ٨ ثوانٍ
+const POLL_INTERVAL_MS = 6000;                 // نستطلع مواقع الآخرين كل ٦ ثوانٍ
+
+/* ---------- تعريف الخطوط ---------- */
+/* يمكن إضافة خطوط جديدة بسهولة بإضافة عنصر جديد لهذه القائمة فقط */
+const LINES = [
+  { id: 'jableh-lattakia',   name: 'جبلة ← اللاذقية' },
+  { id: 'jableh-baityashout', name: 'جبلة ← بيت ياشوط' },
+  { id: 'jableh-city',        name: 'خط جبلة الداخلي' },
+  { id: 'lattakia-city',      name: 'خط اللاذقية الداخلي' },
+];
+
+/* ---------- تخزين محلي بسيط ---------- */
+const LS_KEYS = {
+  role: 'khat-role',            // 'driver' | 'rider'
+  lineId: 'khat-line-id',
+  name: 'khat-user-name',
+  deviceId: 'khat-device-id',
+  locationChoice: 'khat-location-choice', // 'enabled' | 'skipped'
+};
+function lsGet(key){ try { return localStorage.getItem(key) || ''; } catch(e){ return ''; } }
+function lsSet(key, val){ try { localStorage.setItem(key, val); } catch(e){ /* تجاهل بأمان */ } }
+function lsRemove(key){ try { localStorage.removeItem(key); } catch(e){ /* تجاهل بأمان */ } }
+
+function getDeviceId(){
+  let id = lsGet(LS_KEYS.deviceId);
+  if(!id){
+    id = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+    lsSet(LS_KEYS.deviceId, id);
+  }
+  return id;
+}
+
+function escapeHtml(str, isAttr){
+  const s = String(str == null ? '' : str);
+  const escaped = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return isAttr ? escaped.replace(/"/g,'&quot;') : escaped;
+}
+
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+/* ---------- حالة التطبيق ---------- */
+const state = {
+  role: lsGet(LS_KEYS.role) || '',       // 'driver' | 'rider'
+  lineId: lsGet(LS_KEYS.lineId) || '',
+  name: lsGet(LS_KEYS.name) || '',
+  myLat: null,
+  myLng: null,
+  gpsWatchId: null,
+  locationEnabled: false,        // هل وافق المستخدم على مشاركة موقعه؟ (اختياري)
+};
+
+function getLineById(id){ return LINES.find(l => l.id === id) || null; }
+
+/* ============================================================================
+   بوابة تفعيل GPS
+   ========================================================================= */
+function showGpsGate(){
+  document.getElementById('gpsGateOverlay').classList.remove('hidden');
+  resetGpsGateChoiceView();
+}
+function hideGpsGate(){ document.getElementById('gpsGateOverlay').classList.add('hidden'); }
+
+/* يعيد بوابة GPS إلى وضعها الأولي: عرض الخيارين (تفعيل / متابعة بدون تفعيل) بلا رسالة خطأ سابقة */
+function resetGpsGateChoiceView(){
+  const statusEl = document.getElementById('gpsGateStatus');
+  const enableBtn = document.getElementById('gpsGateEnableBtn');
+  const skipBtn = document.getElementById('gpsGateSkipBtn');
+  const retryBtn = document.getElementById('gpsGateRetryBtn');
+  statusEl.classList.remove('err');
+  statusEl.textContent = '';
+  enableBtn.style.display = '';
+  skipBtn.style.display = '';
+  retryBtn.style.display = 'none';
+}
+
+/* اختيار المستخدم: تفعيل الموقع فعلياً (يطلب إذن المتصفح) */
+function requestGpsThenStart(){
+  const statusEl = document.getElementById('gpsGateStatus');
+  const enableBtn = document.getElementById('gpsGateEnableBtn');
+  const skipBtn = document.getElementById('gpsGateSkipBtn');
+  const retryBtn = document.getElementById('gpsGateRetryBtn');
+  enableBtn.style.display = 'none';
+  retryBtn.style.display = 'none';
+  statusEl.classList.remove('err');
+  statusEl.textContent = 'بانتظار إذن الموقع من المتصفح...';
+
+  if(!navigator.geolocation){
+    statusEl.classList.add('err');
+    statusEl.textContent = 'هذا المتصفح/الجهاز لا يدعم تحديد الموقع. يمكنك المتابعة بدون تفعيله.';
+    enableBtn.style.display = 'none';
+    skipBtn.style.display = '';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      state.myLat = pos.coords.latitude;
+      state.myLng = pos.coords.longitude;
+      state.locationEnabled = true;
+      lsSet(LS_KEYS.locationChoice, 'enabled');
+      hideGpsGate();
+      startMyLocationTracking();
+      renderApp();
+    },
+    (err) => {
+      statusEl.classList.add('err');
+      if(err.code === err.PERMISSION_DENIED){
+        statusEl.textContent = 'تم رفض إذن الموقع. يمكنك إعادة المحاولة، أو المتابعة بدون تفعيله.';
+      } else {
+        statusEl.textContent = 'تعذّر تحديد موقعك حالياً. يمكنك إعادة المحاولة، أو المتابعة بدون تفعيله.';
+      }
+      retryBtn.style.display = '';
+      skipBtn.style.display = '';
+    },
+    { enableHighAccuracy:true, timeout:15000, maximumAge:0 }
+  );
+}
+
+/* اختيار المستخدم: المتابعة دون تفعيل الموقع — يرى مواقع الآخرين فقط دون أن يشارك موقعه */
+function continueWithoutLocation(){
+  state.locationEnabled = false;
+  state.myLat = null;
+  state.myLng = null;
+  lsSet(LS_KEYS.locationChoice, 'skipped');
+  hideGpsGate();
+  renderApp();
+}
+
+/* يبدأ تتبع الموقع المستمر لهذا الجهاز، يُحدَّث محلياً باستمرار ويُبَث للخادم دورياً */
+function startMyLocationTracking(){
+  if(state.gpsWatchId !== null || !navigator.geolocation) return;
+  state.gpsWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      state.myLat = pos.coords.latitude;
+      state.myLng = pos.coords.longitude;
+      pushMyLocation();
+    },
+    () => { /* فشل تحديث لحظي — نحتفظ بآخر موقع معروف */ },
+    { enableHighAccuracy:true, maximumAge:10000, timeout:20000 }
+  );
+}
+
+/* ============================================================================
+   بث واستقبال المواقع اللحظية عبر Firebase Realtime Database (REST بسيط)
+   ========================================================================= */
+let _lastPushT = 0;
+function pushMyLocation(){
+  if(!state.role || !state.lineId || state.myLat == null || state.myLng == null) return;
+  const now = Date.now();
+  if(now - _lastPushT < PUSH_MIN_INTERVAL_MS) return;
+  _lastPushT = now;
+  const payload = {
+    name: state.name || (state.role === 'driver' ? 'سائق' : 'راكب'),
+    role: state.role,
+    lat: state.myLat,
+    lng: state.myLng,
+    t: now,
+  };
+  fetch(`${LIVE_DB_URL}/lines/${state.lineId}/${getDeviceId()}.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => { /* بلا اتصال — سيُرسل تحديث لاحق تلقائياً */ });
+}
+
+/* يجلب مواقع بقية المستخدمين على نفس الخط، ويُرجع فقط الفئة المقابلة لدور المستخدم
+   الحالي (السائق يرى الركاب فقط، والراكب يرى السائقين فقط)، مستثنياً موقعه هو،
+   ومتجاهلاً أي موقع قديم لم يُحدَّث منذ فترة (يُعتبر غير نشط) */
+async function fetchOppositeRoleLocations(){
+  if(!state.lineId) return [];
+  try {
+    const res = await fetch(`${LIVE_DB_URL}/lines/${state.lineId}.json`);
+    if(!res.ok) return [];
+    const data = await res.json();
+    if(!data || typeof data !== 'object') return [];
+    const myId = getDeviceId();
+    const now = Date.now();
+    const wanted = state.role === 'driver' ? 'rider' : 'driver';
+    return Object.entries(data)
+      .filter(([id, v]) => id !== myId && v && v.role === wanted
+        && typeof v.lat === 'number' && typeof v.lng === 'number'
+        && (now - (v.t || 0)) < LOCATION_STALE_MS)
+      .map(([id, v]) => ({ id, name: v.name || (wanted === 'driver' ? 'سائق' : 'راكب'), lat:v.lat, lng:v.lng, t:v.t }));
+  } catch(e){ return []; }
+}
+
+let pollTimer = null;
+function stopPolling(){ if(pollTimer !== null){ clearInterval(pollTimer); pollTimer = null; } }
+function startPolling(onUpdate){
+  stopPolling();
+  const tick = () => { fetchOppositeRoleLocations().then(onUpdate); };
+  tick();
+  pollTimer = setInterval(tick, POLL_INTERVAL_MS);
+}
+
+/* عند مغادرة الخط أو تغيير الدور، من الأدب حذف موقعنا من القاعدة حتى لا نظهر
+   "نشطين" للآخرين رغم مغادرتنا (بأفضل جهد فقط، دون انتظار أو ضمان) */
+function removeMyLocation(lineId){
+  if(!lineId) return;
+  try {
+    navigator.sendBeacon
+      ? navigator.sendBeacon(`${LIVE_DB_URL}/lines/${lineId}/${getDeviceId()}.json`, new Blob(['null'], {type:'application/json'}))
+      : fetch(`${LIVE_DB_URL}/lines/${lineId}/${getDeviceId()}.json`, { method:'DELETE' }).catch(()=>{});
+  } catch(e){ /* تجاهل بأمان */ }
+}
+
+/* ============================================================================
+   الخريطة: محاولة Leaflet + MapTiler حقيقية، مع نسخة SVG احتياطية بلا إنترنت
+   ========================================================================= */
+const MAPTILER_API_KEY = 'dYxZTI3pcObjxIMIy36O';
+const MAP_STYLES = {
+  streets: {
+    label: 'شوارع',
+    tileUrl: `https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=${MAPTILER_API_KEY}`,
+    testUrl: `https://api.maptiler.com/maps/streets-v2/256/0/0/0.png?key=${MAPTILER_API_KEY}`,
+    attribution: '© MapTiler © OpenStreetMap contributors',
+  },
+  hybrid: {
+    label: 'أقمار صناعية',
+    tileUrl: `https://api.maptiler.com/maps/hybrid/256/{z}/{x}/{y}.png?key=${MAPTILER_API_KEY}`,
+    testUrl: `https://api.maptiler.com/maps/hybrid/256/0/0/0.png?key=${MAPTILER_API_KEY}`,
+    attribution: '© MapTiler © OpenStreetMap contributors',
+  },
+};
+function getSavedMapStyleKey(){
+  const saved = lsGet('khat-map-style');
+  return (saved && MAP_STYLES[saved]) ? saved : 'streets';
+}
+function saveMapStyleKey(key){ lsSet('khat-map-style', key); }
+
+function checkTilesReachable(testUrl, timeoutMs){
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok) => { if(!settled){ settled = true; resolve(ok); } };
+    const img = new Image();
+    img.onload = () => finish(img.naturalWidth > 0);
+    img.onerror = () => finish(false);
+    img.src = testUrl + (testUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+    setTimeout(() => finish(false), timeoutMs || 4000);
+  });
+}
+
+let _leafletLoadPromise = null;
+function ensureLeafletLoaded(){
+  if(window.L) return Promise.resolve(true);
+  if(_leafletLoadPromise) return _leafletLoadPromise;
+  _leafletLoadPromise = new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok) => { if(!settled){ settled = true; resolve(ok); } };
+    try {
+      const cssLink = document.createElement('link');
+      cssLink.rel = 'stylesheet';
+      cssLink.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(cssLink);
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = () => finish(!!window.L);
+      script.onerror = () => finish(false);
+      document.head.appendChild(script);
+      setTimeout(() => finish(!!window.L), 7000);
+    } catch(e){ finish(false); }
+  });
+  return _leafletLoadPromise;
+}
+
+/* يرسم خريطة SVG بسيطة ذاتية الاحتواء (بلا إنترنت) — دوائر نسبية حسب فروق الإحداثيات،
+   تكفي لإعطاء فكرة تقريبية عن الاتجاه والتوزع عند تعذر تحميل بلاطات الخريطة الحقيقية */
+function renderSvgFallbackMap(mapEl, me, others){
+  const pts = [];
+  if(me) pts.push({ lat:me.lat, lng:me.lng, kind:'me', name:'أنت' });
+  others.forEach(o => pts.push({ lat:o.lat, lng:o.lng, kind:'other', name:o.name }));
+
+  if(!pts.length){
+    mapEl.innerHTML = `<div class="empty-note">لا توجد مواقع لعرضها بعد.</div>`;
+    return;
+  }
+  const lats = pts.map(p => p.lat), lngs = pts.map(p => p.lng);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const padLat = Math.max((maxLat - minLat) * 0.25, 0.003);
+  const padLng = Math.max((maxLng - minLng) * 0.25, 0.003);
+  const lat0 = minLat - padLat, lat1 = maxLat + padLat;
+  const lng0 = minLng - padLng, lng1 = maxLng + padLng;
+  const W = 600, H = 480;
+  const x = (lng) => ((lng - lng0) / (lng1 - lng0)) * W;
+  const y = (lat) => H - ((lat - lat0) / (lat1 - lat0)) * H;
+
+  const roleColor = (kind, r) => kind === 'me' ? '#0ea5e9' : (r === 'driver' ? '#22c55e' : '#f59e0b');
+
+  const circles = pts.map(p => {
+    const cx = x(p.lng), cy = y(p.lat);
+    const color = p.kind === 'me' ? '#0ea5e9' : (state.role === 'driver' ? '#f59e0b' : '#22c55e');
+    return `
+      <circle cx="${cx}" cy="${cy}" r="9" fill="${color}" stroke="#0f172a" stroke-width="2"/>
+      <text x="${cx}" y="${cy - 14}" font-size="12" fill="#e8edf7" text-anchor="middle" font-family="Noto Kufi Arabic, sans-serif">${escapeHtml(p.name)}</text>
+    `;
+  }).join('');
+
+  mapEl.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:100%; display:block; background:#16213c;">
+      <defs>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#22345a" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect width="${W}" height="${H}" fill="url(#grid)"/>
+      ${circles}
+    </svg>
+    <div style="position:absolute; bottom:6px; right:10px; font-size:10px; color:#a7b3cc;">عرض تقريبي بلا اتصال بالإنترنت</div>
+  `;
+}
+
+/* يحاول عرض خريطة Leaflet حقيقية؛ يرجع true عند النجاح */
+async function tryRenderLeafletMap(mapEl, me, others){
+  const styleKey = getSavedMapStyleKey();
+  const style = MAP_STYLES[styleKey];
+  const [libOk, tilesOk] = await Promise.all([
+    ensureLeafletLoaded(),
+    checkTilesReachable(style.testUrl, 4000),
+  ]);
+  if(!libOk || !tilesOk || !mapEl.isConnected) return false;
+  try {
+    mapEl.innerHTML = '';
+    const map = L.map(mapEl, { zoomControl:true, attributionControl:true });
+    const tileLayer = L.tileLayer(style.tileUrl, { maxZoom:20, attribution:style.attribution }).addTo(map);
+
+    mapEl._leafletMapInstance = map;
+    mapEl._tileLayer = tileLayer;
+    mapEl._meMarker = null;
+    mapEl._othersLayer = L.layerGroup().addTo(map);
+
+    if(me){
+      map.setView([me.lat, me.lng], 14);
+    } else {
+      map.setView([35.36, 35.93], 11); // مركز تقريبي بين جبلة واللاذقية
+    }
+    updateLeafletMarkers(mapEl, me, others);
+    return true;
+  } catch(e){ return false; }
+}
+
+function meIconHtml(){
+  return `<div style="width:18px;height:18px;border-radius:50%;background:#0ea5e9;border:3px solid #fff;box-shadow:0 0 0 3px rgba(14,165,233,0.35);"></div>`;
+}
+function otherIconHtml(role){
+  const color = role === 'driver' ? '#22c55e' : '#f59e0b';
+  const emoji = role === 'driver' ? '🚐' : '🧍';
+  return `<div style="width:26px;height:26px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #fff;">${emoji}</div>`;
+}
+
+/* يحدّث موضع علامتي/طبقة العلامات على خريطة Leaflet نشطة دون إعادة إنشائها */
+function updateLeafletMarkers(mapEl, me, others){
+  if(!mapEl._leafletMapInstance) return;
+  const map = mapEl._leafletMapInstance;
+
+  if(me){
+    if(!mapEl._meMarker){
+      mapEl._meMarker = L.marker([me.lat, me.lng], {
+        icon: L.divIcon({ html: meIconHtml(), className:'', iconSize:[18,18] })
+      }).addTo(map).bindTooltip('أنت', { permanent:true, direction:'top', offset:[0,-8], className:'khat-map-label' });
+    } else {
+      mapEl._meMarker.setLatLng([me.lat, me.lng]);
+    }
+  }
+
+  mapEl._othersLayer.clearLayers();
+  others.forEach(o => {
+    const marker = L.marker([o.lat, o.lng], {
+      icon: L.divIcon({ html: otherIconHtml(o.role || (state.role === 'driver' ? 'rider' : 'driver')), className:'', iconSize:[26,26] })
+    });
+    const roleLabel = state.role === 'driver' ? 'راكب' : 'سائق';
+    marker.bindTooltip(`${escapeHtml(o.name)} (${roleLabel})`, { permanent:true, direction:'top', offset:[0,-14], className:'khat-map-label' });
+    marker.addTo(mapEl._othersLayer);
+  });
+
+  // إعادة ضبط حدود العرض لتشمل الجميع إن لم يكن هناك تفاعل يدوي حديث بالمستخدم
+  const allPts = [];
+  if(me) allPts.push([me.lat, me.lng]);
+  others.forEach(o => allPts.push([o.lat, o.lng]));
+  if(allPts.length > 1 && !mapEl._userPanned){
+    map.fitBounds(allPts, { padding:[36,36], maxZoom:15 });
+  }
+}
+
+async function switchMapStyle(mapEl, key){
+  const style = MAP_STYLES[key];
+  if(!style || !mapEl._leafletMapInstance) return false;
+  const tilesOk = await checkTilesReachable(style.testUrl, 4000);
+  if(!tilesOk || !mapEl.isConnected || !mapEl._leafletMapInstance) return false;
+  try {
+    if(mapEl._tileLayer) mapEl._leafletMapInstance.removeLayer(mapEl._tileLayer);
+    mapEl._tileLayer = L.tileLayer(style.tileUrl, { maxZoom:20, attribution:style.attribution }).addTo(mapEl._leafletMapInstance);
+    saveMapStyleKey(key);
+    return true;
+  } catch(e){ return false; }
+}
+
+/* ============================================================================
+   واجهات الإعداد (اختيار الدور، الاسم، الخط)
+   ========================================================================= */
+function renderSetupScreen(){
+  const host = document.getElementById('mainHost');
+  document.getElementById('topRolePill').style.display = 'none';
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <h2>مرحباً بك 👋</h2>
+    <p class="hint">حدّد دورك، ثم اختر الخط الذي تنتمي إليه، لتظهر لك مواقع بقية المستخدمين المناسبين على الخريطة لحظياً.</p>
+
+    <div class="choice-grid">
+      <div class="choice-btn driver" id="chooseDriverBtn">
+        <span class="icon">🚐</span>
+        <span class="label">أنا سائق</span>
+      </div>
+      <div class="choice-btn rider" id="chooseRiderBtn">
+        <span class="icon">🧍</span>
+        <span class="label">أنا راكب</span>
+      </div>
+    </div>
+
+    <div class="field-label">الاسم الذي سيظهر للآخرين</div>
+    <input type="text" class="text-input" id="setupNameInput" placeholder="مثال: أبو محمد" maxlength="30" value="${escapeHtml(state.name, true)}">
+
+    <div class="field-label">الخط</div>
+    <select class="line-select" id="setupLineSelect">
+      <option value="">— اختر الخط —</option>
+      ${LINES.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('')}
+    </select>
+
+    <button class="btn-primary" id="setupStartBtn" disabled>ابدأ</button>
+  `;
+  host.innerHTML = '';
+  host.appendChild(card);
+
+  const driverBtn = document.getElementById('chooseDriverBtn');
+  const riderBtn = document.getElementById('chooseRiderBtn');
+  const nameInput = document.getElementById('setupNameInput');
+  const lineSelect = document.getElementById('setupLineSelect');
+  const startBtn = document.getElementById('setupStartBtn');
+
+  let pendingRole = state.role || '';
+  if(pendingRole === 'driver') driverBtn.classList.add('selected');
+  if(pendingRole === 'rider') riderBtn.classList.add('selected');
+  if(state.lineId) lineSelect.value = state.lineId;
+
+  function updateStartEnabled(){
+    startBtn.disabled = !(pendingRole && lineSelect.value && nameInput.value.trim());
+  }
+  updateStartEnabled();
+
+  driverBtn.addEventListener('click', () => {
+    pendingRole = 'driver';
+    driverBtn.classList.add('selected'); riderBtn.classList.remove('selected');
+    updateStartEnabled();
+  });
+  riderBtn.addEventListener('click', () => {
+    pendingRole = 'rider';
+    riderBtn.classList.add('selected'); driverBtn.classList.remove('selected');
+    updateStartEnabled();
+  });
+  nameInput.addEventListener('input', updateStartEnabled);
+  lineSelect.addEventListener('change', updateStartEnabled);
+
+  startBtn.addEventListener('click', () => {
+    state.role = pendingRole;
+    state.lineId = lineSelect.value;
+    state.name = nameInput.value.trim();
+    lsSet(LS_KEYS.role, state.role);
+    lsSet(LS_KEYS.lineId, state.lineId);
+    lsSet(LS_KEYS.name, state.name);
+
+    if(state.myLat != null && state.myLng != null){
+      startMyLocationTracking();
+      renderApp();
+    } else {
+      // نعرض بوابة الموقع كخيار: للمستخدم أن يفعّل الموقع أو يتابع بدونه
+      showGpsGate();
+    }
+  });
+}
+
+/* ============================================================================
+   شاشة الخريطة الرئيسية بعد الإعداد
+   ========================================================================= */
+function renderMapScreen(){
+  const line = getLineById(state.lineId);
+  const rolePill = document.getElementById('topRolePill');
+  rolePill.style.display = 'flex';
+  rolePill.className = `role-pill ${state.role}`;
+  rolePill.innerHTML = `<span class="dot"></span>${state.role === 'driver' ? 'سائق' : 'راكب'} — ${escapeHtml(state.name)}`;
+  rolePill.onclick = () => {
+    stopPolling();
+    if(state.gpsWatchId !== null){ navigator.geolocation.clearWatch(state.gpsWatchId); state.gpsWatchId = null; }
+    removeMyLocation(state.lineId);
+    renderSetupScreen();
+  };
+
+  const oppositeLabel = state.role === 'driver' ? 'الركاب' : 'السائقين';
+  const host = document.getElementById('mainHost');
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="line-header">
+      <span class="name">${escapeHtml(line ? line.name : '')}</span>
+      <span class="count" id="oppCount">جارٍ التحميل...</span>
+    </div>
+    ${state.locationEnabled
+      ? `<div class="live-badge"><span class="live-dot"></span>موقعك يُشارك لحظياً مع ${oppositeLabel} على هذا الخط</div>`
+      : `<div class="live-badge off">لم تُفعّل مشاركة موقعك — تشاهد ${oppositeLabel} فقط دون أن يظهر موقعك لهم. <span class="enable-loc-link" id="enableLocLink">تفعيل الآن</span></div>`
+    }
+
+    <div class="legend">
+      <span><i class="li-me"></i>أنت</span>
+      <span><i class="${state.role === 'driver' ? 'li-rider' : 'li-driver'}"></i>${state.role === 'driver' ? 'راكب' : 'سائق'}</span>
+    </div>
+
+    <div class="map-wrap">
+      <div class="map-style-switch" id="mapStyleSwitch" style="display:none;">
+        ${Object.entries(MAP_STYLES).map(([key, s]) => `<button type="button" class="map-style-btn" data-style="${key}">${escapeHtml(s.label)}</button>`).join('')}
+      </div>
+      <div id="mapBox" class="map-box"></div>
+    </div>
+
+    <div class="person-list" id="personList"></div>
+
+    <span class="switch-line-link" id="changeLineLink">تغيير الخط أو الدور</span>
+  `;
+  host.innerHTML = '';
+  host.appendChild(card);
+
+  document.getElementById('changeLineLink').onclick = () => {
+    stopPolling();
+    if(state.gpsWatchId !== null){ navigator.geolocation.clearWatch(state.gpsWatchId); state.gpsWatchId = null; }
+    removeMyLocation(state.lineId);
+    renderSetupScreen();
+  };
+
+  const enableLocLink = document.getElementById('enableLocLink');
+  if(enableLocLink){
+    enableLocLink.addEventListener('click', () => { showGpsGate(); });
+  }
+
+  const mapEl = document.getElementById('mapBox');
+  const styleSwitchEl = document.getElementById('mapStyleSwitch');
+  const oppCountEl = document.getElementById('oppCount');
+  const personListEl = document.getElementById('personList');
+
+  function updateStyleSwitchButtons(){
+    const current = getSavedMapStyleKey();
+    styleSwitchEl.querySelectorAll('.map-style-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-style') === current);
+    });
+  }
+  styleSwitchEl.querySelectorAll('.map-style-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-style');
+      if(key === getSavedMapStyleKey()) return;
+      btn.disabled = true;
+      switchMapStyle(mapEl, key).then(ok => {
+        btn.disabled = false;
+        if(ok) updateStyleSwitchButtons();
+        else showToast('تعذّر تحميل هذا النمط — تحقق من الاتصال');
+      });
+    });
+  });
+
+  mapEl._mode = 'svg';
+  const me = () => (state.myLat != null ? { lat: state.myLat, lng: state.myLng } : null);
+
+  function renderList(others){
+    if(!others.length){
+      personListEl.innerHTML = `<div class="empty-note">لا يوجد ${oppositeLabel} نشطون حالياً على هذا الخط.</div>`;
+      return;
+    }
+    const now = Date.now();
+    personListEl.innerHTML = others.map(o => {
+      const secAgo = Math.max(0, Math.round((now - (o.t || now)) / 1000));
+      const agoText = secAgo < 60 ? `منذ ${secAgo} ث` : `منذ ${Math.round(secAgo/60)} د`;
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${o.lat},${o.lng}`;
+      const cls = state.role === 'driver' ? 'rider' : 'driver';
+      const emoji = cls === 'driver' ? '🚐' : '🧍';
+      return `
+        <div class="person-item ${cls}">
+          <div class="info">
+            <div class="avatar">${emoji}</div>
+            <div>
+              <div class="name">${escapeHtml(o.name)}</div>
+              <div class="ago">${agoText}</div>
+            </div>
+          </div>
+          <a class="go-link" href="${mapsUrl}" target="_blank" rel="noopener">فتح بالخرائط</a>
+        </div>`;
+    }).join('');
+  }
+
+  // عرض فوري بـ SVG بلا انتظار الشبكة، ثم محاولة الترقية لخريطة Leaflet حقيقية
+  renderSvgFallbackMap(mapEl, me(), []);
+  tryRenderLeafletMap(mapEl, me(), []).then(ok => {
+    if(!mapEl.isConnected) return;
+    if(ok){
+      mapEl._mode = 'leaflet';
+      styleSwitchEl.style.display = '';
+      updateStyleSwitchButtons();
+    } else {
+      renderSvgFallbackMap(mapEl, me(), []);
+    }
+  });
+
+  startPolling((others) => {
+    oppCountEl.textContent = `${others.length} ${oppositeLabel} نشط الآن`;
+    renderList(others);
+    if(!mapEl.isConnected) return;
+    if(mapEl._mode === 'leaflet'){
+      updateLeafletMarkers(mapEl, me(), others);
+    } else {
+      renderSvgFallbackMap(mapEl, me(), others);
+    }
+  });
+
+  // نحدّث موضعنا على الخريطة بشكل دوري أيضاً حتى دون تغيّر فعلي كبير في GPS
+  clearInterval(window._khatSelfRefresh);
+  window._khatSelfRefresh = setInterval(() => {
+    if(!mapEl.isConnected){ clearInterval(window._khatSelfRefresh); return; }
+    if(mapEl._mode === 'leaflet' && mapEl._meMarker && me()){
+      mapEl._meMarker.setLatLng([me().lat, me().lng]);
+    }
+  }, 4000);
+}
+
+/* ============================================================================
+   نقطة الدخول
+   ========================================================================= */
+function renderApp(){
+  if(!state.role || !state.lineId || !state.name){
+    renderSetupScreen();
+    return;
+  }
+  renderMapScreen();
+}
+
+window.addEventListener('beforeunload', () => {
+  removeMyLocation(state.lineId);
+});
+
+(function init(){
+  if(state.role && state.lineId && state.name){
+    const savedChoice = lsGet(LS_KEYS.locationChoice);
+    if(savedChoice === 'skipped'){
+      // المستخدم اختار سابقاً المتابعة بدون تفعيل الموقع — نحترم اختياره ولا نعرض البوابة مجدداً
+      state.locationEnabled = false;
+      renderApp();
+    } else if(savedChoice === 'enabled'){
+      // المستخدم فعّل الموقع سابقاً — نطلب الموقع مباشرة (الإذن ممنوح مسبقاً غالباً فلن يظهر أي إزعاج)
+      showGpsGate();
+      requestGpsThenStart();
+    } else {
+      // أول دخول: نعرض الاختيار صراحةً دون أي طلب تلقائي لإذن المتصفح
+      showGpsGate();
+    }
+  } else {
+    renderSetupScreen();
+  }
+
+  document.getElementById('gpsGateEnableBtn').addEventListener('click', requestGpsThenStart);
+  document.getElementById('gpsGateSkipBtn').addEventListener('click', continueWithoutLocation);
+  document.getElementById('gpsGateRetryBtn').addEventListener('click', requestGpsThenStart);
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./service-worker.js').catch(() => { /* تجاهل بأمان */ });
+  }
+})();
+</script>
+</body>
+</html>
